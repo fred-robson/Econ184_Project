@@ -5,37 +5,46 @@ from itertools import combinations
 import matplotlib.pyplot as plt
 import matplotlib
 from tqdm import tqdm
+import sys
+
 
 QUANDL_API_KEY = "XwCG5EsTRsY4yLRUPLXv"
 
 class StockInformation():
 
-	def __init__(self,working_days=5,verbose=False):
+	def __init__(self,working_days=5,start_year = 1990,end_year=2017,verbose=False,limit=float("inf")):
 		self.working_days = working_days
+		self.verbose = verbose
+		self.start_year = start_year
+		self.end_year = end_year
+		self.limit = limit
+
 		self.Data = defaultdict(lambda:OrderedDict())
 		self.RecordedDays = set()
 		self.populate_StockHistory()
-		self.PairedReturns = defaultdict(lambda:list())
-		self.get_PairwiseReturns()
-		self.verbose = verbose
 		
-
 	def populate_StockHistory(self):
 		#Reads the csv and puts relevant info in Data
+		if self.verbose: print "Reading CSV"
 		with open("prices.csv") as csv_file: 
 			reader = csv.DictReader(csv_file)
 			prev_row = None
-			for i,row in tqdm(enumerate(reader)):
+			for i,row in enumerate(reader):
+				
+				if self.verbose and i % 100000 == 0: print str(i)+" rows have been read"
+				
 				try: 
 					ticker = row['ticker']
 					date = datetime.strptime(row['date'],"%Y-%m-%d")
+					if date.year<self.start_year or date.year>self.end_year: continue
 					adj_close = float(row["adj_close"])#adj_close = Close adjusted for stock splits and dividends
 					self.Data[ticker][date] = adj_close #Note that it 
 					self.RecordedDays.add(date)
 				except:
 					if self.verbose: print row
-				#if i == 100000: break
-
+				
+				if i >= self.limit: break
+				
 		if self.verbose: print "Finished Reading CSV"
 		self.RecordedDays = list(self.RecordedDays)
 		self.RecordedDays.sort()
@@ -49,32 +58,41 @@ class StockInformation():
 
 		return ((end_p / start_p) -1.0)*100 #Returns in percentage terms
 
-	def get_PairwiseReturns(self):
+	def get_PairwiseReturn(self,t1,t2):
 		'''
 		Gets the paired returns for each of the stocks. Returns are measured over @working_days in work days 
-		'''
-		for t1,t2 in combinations(self.Data,2):
-			if len(self.Data[t1])<len(self.Data[t2]): tsmall,tlarge = t1,t2
-			else: tlarge,tsmall = t2,t1
+		'''	
+
+		return_val = [[],[],[]]
+
+		if len(self.Data[t1])<len(self.Data[t2]): 
+			tsmall,tlarge = t1,t2
+			ts_index,tl_index = 1,2
+		else: 
+			tlarge,tsmall = t1,t2
+			ts_index,tl_index = 2,1
 			
-			dates = list(self.Data[tsmall])
-			curr_index = 0 
-			start = dates[0]
+		dates = list(self.Data[t1])
+		curr_index = 0 
+		start = dates[0]
 
-			while(True):
-				curr_index += self.working_days
-				if curr_index>len(dates)-1: break
-				end = dates[curr_index]
-				
-				ts_return = self.get_return(tsmall,start,end)
-				tl_return = self.get_return(tlarge,start,end)
-				
-				if ts_return !=None and tl_return !=None:
-					self.PairedReturns[(tsmall,tlarge)].append(((start,end),ts_return,tl_return))
+		while(True):
+			curr_index += self.working_days
+			if curr_index>len(dates)-1: break
+			end = dates[curr_index]
+			
+			ts_return = self.get_return(tsmall,start,end)
+			tl_return = self.get_return(tlarge,start,end)
+			
+			if ts_return !=None and tl_return !=None:
+				return_val[0].append((start,end))
+				return_val[ts_index].append(ts_return)
+				return_val[tl_index].append(tl_return)
 
-				start = end
+			start = end
 
-	
+		return return_val
+
 
 	def plot_stockprice(self,ticker):
 		prices = self.Data[ticker]
@@ -86,7 +104,8 @@ class StockInformation():
 		plt.show()
 
 	def plot_pairwise(self,ticker_pair,weights=None):
-		returns = self.PairedReturns[ticker_pair]
+		t1,t2 = ticker_pair
+		returns = self.get_PairwiseReturn(t1,t2)
 		plt.clf()
 		
 		ax = plt.gca()
@@ -112,17 +131,10 @@ class StockInformation():
 		plt.title("Returns for "+ticker_pair[0]+" and "+ticker_pair[1]+" over "+str(self.working_days)+" days")
 		plt.savefig("figures/"+ticker_pair[0]+ticker_pair[1]+str(self.working_days)+".png")
 
-	def get_PairedReturns(self):
-		return_dict = defaultdict(lambda:(list(),list()))
-		for tickers,data in self.PairedReturns.iteritems():
-			for d in data:
-				return_dict[tickers][0].append(d[1])
-				return_dict[tickers][1].append(d[2])
-		return return_dict
 
 
 
 if __name__ =="__main__":
-	SI = StockInformation()
+	SI = StockInformation(limit=1)
 	print SI.RecordedDays[0]
 

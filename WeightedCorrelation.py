@@ -3,8 +3,7 @@ from scipy.stats.stats import pearsonr
 
 
 def utility_derivative(wealth): 
-	
-	return (1/wealth)**2
+	return 1/(wealth**2)
 	
 def weight_point(x1,x2,verbose=False):
 	'''
@@ -12,7 +11,7 @@ def weight_point(x1,x2,verbose=False):
 	x1 = %change in asset 1
 	x2 = %change in asset 2 
 	'''
-	old_wealth = 1
+	old_wealth = 100
 	new_wealth = (old_wealth/2.0)*(1+x1/100.0) + (old_wealth/2.0)*(1+x2/100.0)
 	if verbose: print x1,x2,new_wealth, abs(utility_derivative(new_wealth))
 	return abs(utility_derivative(new_wealth))
@@ -36,7 +35,8 @@ def weighted_covariance(X1,X2,W):
 	return cov
 
 
-def weighted_correlation(X1,X2):
+def weighted_correlation(X1,X2,weights):
+	if len(X1) == 0: return None
 	#Calculates weighted correlation 
 	weights = [weight_point(x1,x2) for x1,x2 in zip(X1,X2)]
 	
