@@ -4,7 +4,6 @@ from datetime import datetime,timedelta
 from itertools import combinations
 import matplotlib.pyplot as plt
 import matplotlib
-from tqdm import tqdm
 import sys
 
 
