@@ -48,6 +48,23 @@ class StockInformation():
 		self.RecordedDays = list(self.RecordedDays)
 		self.RecordedDays.sort()
 
+	def ensure_data_complete(self):
+		'''
+		Returns all the stocks that do not have enough data across the whole time period
+		'''
+		longest_dates = -1
+		for stock,dates in self.Data.iteritems():
+			if len(dates) >longest_dates: longest_dates = len(dates)
+
+		to_delete = set()
+		for stock,dates in self.Data.iteritems():
+			if len(dates) < longest_dates-10: #Give a little bit of leeway
+				to_delete.add(stock)
+		
+		return to_delete
+		
+
+
 	def get_return(self,ticker,start,end):
 		if start in self.Data[ticker]: start_p = self.Data[ticker][start]
 		else: return None
@@ -71,7 +88,11 @@ class StockInformation():
 			tlarge,tsmall = t1,t2
 			ts_index,tl_index = 2,1
 			
-		dates = list(self.Data[t1])
+		dates = list(self.Data[tsmall])
+		
+		if len(dates) == 0: 
+			return return_val
+
 		curr_index = 0 
 		start = dates[0]
 
@@ -134,6 +155,8 @@ class StockInformation():
 
 
 if __name__ =="__main__":
-	SI = StockInformation(limit=1)
+	SI = StockInformation(1,2000,2005,limit=100000)
+	SI.ensure_data_complete()
+
 	print SI.RecordedDays[0]
 

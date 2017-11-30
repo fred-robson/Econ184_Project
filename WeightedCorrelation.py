@@ -1,21 +1,6 @@
 import numpy as np
 from scipy.stats.stats import pearsonr
-
-
-def utility_derivative(wealth): 
-	return 1/(wealth**2)
-	
-def weight_point(x1,x2,verbose=False):
-	'''
-	Returns the 
-	x1 = %change in asset 1
-	x2 = %change in asset 2 
-	'''
-	old_wealth = 100
-	new_wealth = (old_wealth/2.0)*(1+x1/100.0) + (old_wealth/2.0)*(1+x2/100.0)
-	if verbose: print x1,x2,new_wealth, abs(utility_derivative(new_wealth))
-	return abs(utility_derivative(new_wealth))
-
+np.warnings.filterwarnings('ignore')
 
 def weighted_covariance(X1,X2,W):
 	X1,X2,W = np.array(X1),np.array(X2),np.array(W)
@@ -53,4 +38,3 @@ def test_data():
 
 if __name__ == "__main__":
 	x1,x2 = test_data()
-	print utility_derivative(1.1)
