@@ -1,10 +1,10 @@
-import csv
+import csv,os
 from collections import defaultdict,OrderedDict
 from datetime import datetime,timedelta
 from itertools import combinations
 import matplotlib.pyplot as plt
 import matplotlib
-import sys
+import sys,pickle
 
 
 QUANDL_API_KEY = "XwCG5EsTRsY4yLRUPLXv"
@@ -19,15 +19,23 @@ class StockInformation():
 		self.limit = limit
 
 		self.Data = defaultdict(lambda:OrderedDict())
-		self.RecordedDays = set()
 		self.populate_StockHistory()
 		
 	def populate_StockHistory(self):
+		
 		#Reads the csv and puts relevant info in Data
+		file_name = "Saved_objects/"+str(self.start_year)+"|"+str(self.end_year)+"|"+str(self.limit)+".pkl"
+		if os.path.isfile(file_name):
+			if self.verbose: print "Loading file",file_name
+			with open(file_name) as pklfile:
+				self.Data = pickle.load(pklfile)
+				if self.verbose: print file_name,"loaded"
+				return 
+
 		if self.verbose: print "Reading CSV"
 		with open("prices.csv") as csv_file: 
 			reader = csv.DictReader(csv_file)
-			prev_row = None
+			
 			for i,row in enumerate(reader):
 				
 				if self.verbose and i % 100000 == 0: print str(i)+" rows have been read"
@@ -37,16 +45,17 @@ class StockInformation():
 					date = datetime.strptime(row['date'],"%Y-%m-%d")
 					if date.year<self.start_year or date.year>self.end_year: continue
 					adj_close = float(row["adj_close"])#adj_close = Close adjusted for stock splits and dividends
-					self.Data[ticker][date] = adj_close #Note that it 
-					self.RecordedDays.add(date)
+					self.Data[ticker][date] = adj_close  
 				except:
 					if self.verbose: print row
 				
 				if i >= self.limit: break
-				
+		
+		self.Data = dict(self.Data)
 		if self.verbose: print "Finished Reading CSV"
-		self.RecordedDays = list(self.RecordedDays)
-		self.RecordedDays.sort()
+
+		with open(file_name,"w+") as pklfile:
+			pickle.dump(self.Data,pklfile)
 
 	def ensure_data_complete(self):
 		'''
@@ -58,7 +67,7 @@ class StockInformation():
 
 		to_delete = set()
 		for stock,dates in self.Data.iteritems():
-			if len(dates) < longest_dates-10: #Give a little bit of leeway
+			if len(dates) < 0.8*longest_dates: #Give a little bit of leeway
 				to_delete.add(stock)
 		
 		return to_delete
@@ -72,7 +81,7 @@ class StockInformation():
 		if end in self.Data[ticker]: end_p = self.Data[ticker][end]
 		else: return None
 
-		return ((end_p / start_p) -1.0)*100 #Returns in percentage terms
+		return ((end_p / start_p) -1.0)*100
 
 	def get_PairwiseReturn(self,t1,t2):
 		'''
@@ -157,6 +166,4 @@ class StockInformation():
 if __name__ =="__main__":
 	SI = StockInformation(1,2000,2005,limit=100000)
 	SI.ensure_data_complete()
-
-	print SI.RecordedDays[0]
 

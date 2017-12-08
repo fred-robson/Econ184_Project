@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats.stats import pearsonr
-np.warnings.filterwarnings('ignore')
+#np.warnings.filterwarnings('ignore')
 
 def weighted_covariance(X1,X2,W):
 	X1,X2,W = np.array(X1),np.array(X2),np.array(W)
@@ -16,14 +16,13 @@ def weighted_covariance(X1,X2,W):
 	X1_norm_w = np.multiply(X1_norm,W)
 
 	cov = np.dot(X1_norm_w,X2_norm)/sum_weights
-	
-	return cov
 
+	return float(cov)
+	
 
 def weighted_correlation(X1,X2,weights):
 	if len(X1) == 0: return None
 	#Calculates weighted correlation 
-	weights = [weight_point(x1,x2) for x1,x2 in zip(X1,X2)]
 	
 	cov = weighted_covariance(X1,X2,weights)
 	var1 = weighted_covariance(X1,X1,weights)
@@ -38,3 +37,7 @@ def test_data():
 
 if __name__ == "__main__":
 	x1,x2 = test_data()
+	w = [1,1,1]
+	#print weighted_correlation(x1,x2,w)
+	print weighted_covariance(x1,x2,w)
+

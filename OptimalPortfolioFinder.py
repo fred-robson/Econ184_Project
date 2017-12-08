@@ -19,7 +19,7 @@ class OptimalPortfolioFinder():
 		for i,row in enumerate(self.covariances):
 			for j,cov_val in enumerate(row):
 				p_variance+=self.weights[i]*self.weights[j]*cov_val
-		return p_variance
+		return abs(p_variance)
 
 	def find_optimal_weights(self,numIters,eta=0.01):
 		'''
@@ -33,8 +33,9 @@ class OptimalPortfolioFinder():
 			grad = self.sharpes_ratio_gradient()
 			updatedWeights = [w+(eta * grad[i]) for i,w in enumerate(self.weights)]
 			self.weights = updatedWeights
-			#self.normalize_weights()
-			print step,self.weights,grad
+			for i,w in enumerate(self.weights): self.weights[i] = max(w,0.0001) #ensure weights never go negative
+			self.normalize_weights()
+
 		self.normalize_weights()
 		return self.weights
 
@@ -54,7 +55,9 @@ class OptimalPortfolioFinder():
 		r_i/Var(Portfolio) - Sum(w_j*Cov(i,j))(E(R_portfolio) - risk_free)/Var(portfolio)^3/2 
 		'''
 		p_er = self.portfolio_expected_return()
-		p_sd = self.portfolio_variance()**(1.0/2)
+		p_var = self.portfolio_variance() 
+		if p_var<=0: print p_var
+		p_sd = p_var**(1.0/2)
 		grad = []
 
 		for i,w_i in enumerate(self.weights):
@@ -71,5 +74,4 @@ if __name__ == "__main__":
 
 	op = OptimalPortfolioFinder(expected_returns,covariances,0)
 	op.find_optimal_weights(1000,0.01)
-	op.normalize_weights()
 	print op.weights
